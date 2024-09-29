@@ -4,9 +4,8 @@ import SyntaxHighlighter from 'react-syntax-highlighter'
 import { atomOneDark } from 'react-syntax-highlighter/dist/esm/styles/hljs'
 import { ClipboardCopy } from 'lucide-react'
 
-const Message = ({ role, content }) => {
+const Message = ({ role, content = '' }) => { // Default value for content
   const [copiedIndex, setCopiedIndex] = useState(null)
-
 
   const copyToClipboard = (text, index) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -15,7 +14,7 @@ const Message = ({ role, content }) => {
     })
   }
 
-  const renderMessage = (message) => {
+  const renderMessage = (message = '') => { // Default value for message
     const sections = message.split('\n\n')
     return sections.map((section, index) => (
       <div key={index} className="mb-4">
@@ -24,7 +23,7 @@ const Message = ({ role, content }) => {
     ))
   }
 
-  const renderContent = (text, sectionIndex) => {
+  const renderContent = (text = '', sectionIndex) => { // Default value for text
     const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g
     const parts = []
     let lastIndex = 0
@@ -63,7 +62,7 @@ const Message = ({ role, content }) => {
     return parts
   }
 
-  const renderMarkdown = (text, key) => {
+  const renderMarkdown = (text = '', key) => { // Default value for text
     const lines = text.split('\n')
     return lines.map((line, index) => {
       // Handle headers
@@ -110,7 +109,7 @@ const Message = ({ role, content }) => {
 
 Message.propTypes = {
   role: PropTypes.string.isRequired,
-  content: PropTypes.string.isRequired,
+  content: PropTypes.string, // Allow content to be undefined or null
 }
 
 export default Message
