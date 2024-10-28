@@ -4,7 +4,7 @@ import SyntaxHighlighter from 'react-syntax-highlighter'
 import { atomOneDark } from 'react-syntax-highlighter/dist/esm/styles/hljs'
 import { ClipboardCopy } from 'lucide-react'
 
-const Message = ({ role, content = '' }) => { // Default value for content
+const Message = ({ role, content = '' }) => {
   const [copiedIndex, setCopiedIndex] = useState(null)
 
   const copyToClipboard = (text, index) => {
@@ -14,25 +14,35 @@ const Message = ({ role, content = '' }) => { // Default value for content
     })
   }
 
-  const renderMessage = (message = '') => { // Default value for message
-    const sections = message.split('\n\n')
-    return sections.map((section, index) => (
-      <div key={index} className="mb-4">
-        {renderContent(section, index)}
-      </div>
-    ))
-  }
+  const renderMessage = (content) => {
+    // Ensure content is a string and handle empty/null values
+    const messageStr = typeof content === 'object' && content?.response 
+    ? content.response 
+    : String(content || '')
+  
+  if (!messageStr) return null
 
-  const renderContent = (text = '', sectionIndex) => { // Default value for text
+  const sections = messageStr.split('\n\n')
+  return sections.map((section, index) => (
+    <div key={index} className="mb-4">
+      {renderContent(section, index)}
+    </div>
+  ))
+}
+  const renderContent = (text, sectionIndex) => {
+    // Ensure text is a string
+    const textStr = String(text || '')
+    if (!textStr) return null
+
     const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g
     const parts = []
     let lastIndex = 0
     let match
     let codeBlockIndex = 0
 
-    while ((match = codeBlockRegex.exec(text)) !== null) {
+    while ((match = codeBlockRegex.exec(textStr)) !== null) {
       if (lastIndex < match.index) {
-        parts.push(renderMarkdown(text.slice(lastIndex, match.index), `${sectionIndex}-text-${codeBlockIndex}`))
+        parts.push(renderMarkdown(textStr.slice(lastIndex, match.index), `${sectionIndex}-text-${codeBlockIndex}`))
       }
 
       const language = match[1] || 'plaintext'
@@ -55,15 +65,19 @@ const Message = ({ role, content = '' }) => { // Default value for content
       codeBlockIndex++
     }
 
-    if (lastIndex < text.length) {
-      parts.push(renderMarkdown(text.slice(lastIndex), `${sectionIndex}-text-${codeBlockIndex}`))
+    if (lastIndex < textStr.length) {
+      parts.push(renderMarkdown(textStr.slice(lastIndex), `${sectionIndex}-text-${codeBlockIndex}`))
     }
 
     return parts
   }
 
-  const renderMarkdown = (text = '', key) => { // Default value for text
-    const lines = text.split('\n')
+  const renderMarkdown = (text, key) => {
+    // Ensure text is a string
+    const textStr = String(text || '')
+    if (!textStr) return null
+
+    const lines = textStr.split('\n')
     return lines.map((line, index) => {
       // Handle headers
       if (line.startsWith('# ')) {
@@ -87,6 +101,9 @@ const Message = ({ role, content = '' }) => { // Default value for content
     })
   }
 
+  // Convert content to string if it exists, otherwise use empty string
+  const contentStr = content ? String(content) : ''
+
   return (
     <div className={`mb-6 flex ${role === 'assistant' ? 'justify-start' : 'justify-end'}`}>
       <div className={`max-w-[80%] p-4 rounded-2xl shadow-lg relative group ${
@@ -95,9 +112,9 @@ const Message = ({ role, content = '' }) => { // Default value for content
           : 'bg-gradient-to-br from-purple-600 to-purple-700'
       }`}>
         <p className="font-bold mb-2 text-lg">{role === 'assistant' ? 'Goggins' : 'You'}</p>
-        <div className="text-sm leading-relaxed">{renderMessage(content)}</div>
+        <div className="text-sm leading-relaxed">{renderMessage(contentStr)}</div>
         <button
-          onClick={() => copyToClipboard(content, 'full-message')}
+          onClick={() => copyToClipboard(contentStr, 'full-message')}
           className="absolute top-2 right-2 p-2 bg-gray-700 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
         >
           <ClipboardCopy size={16} className={copiedIndex === 'full-message' ? "text-green-500" : "text-gray-300"} />
@@ -109,7 +126,11 @@ const Message = ({ role, content = '' }) => { // Default value for content
 
 Message.propTypes = {
   role: PropTypes.string.isRequired,
-  content: PropTypes.string, // Allow content to be undefined or null
+  content: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.number,
+    PropTypes.bool
+  ]), // Allow different types that can be converted to string
 }
 
 export default Message
