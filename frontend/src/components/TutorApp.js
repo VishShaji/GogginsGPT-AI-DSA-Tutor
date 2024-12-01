@@ -6,6 +6,7 @@ const TutorApp = () => {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
   const scrollAreaRef = useRef(null)
 
   useEffect(() => {
@@ -18,29 +19,37 @@ const TutorApp = () => {
     e.preventDefault()
     if (!input.trim() || loading) return
 
+    setLoading(true)
+    setError(null)
+    
     const userMessage = { id: Date.now(), role: 'user', content: input }
     setMessages(prev => [...prev, userMessage])
     setInput('')
-    setLoading(true)
 
     try {
-      const response = await fetch("http://localhost:8000/ask", {
+      const API_URL = 'https://aam7b42cp4.execute-api.ap-south-1.amazonaws.com';
+      const response = await fetch(`${API_URL}/ask`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: input }),
+        body: JSON.stringify({ question: input, context: messages.map(m => m.content).join('\n') }),
       })
 
       if (!response.ok) {
-        throw new Error('Failed to get response')
+        const errorData = await response.json()
+        console.error('API Error:', errorData)
+        throw new Error(errorData.detail || 'Failed to get response')
       }
 
       const data = await response.json()
-      const assistantMessage = { id: Date.now(), role: 'assistant', content: data.response }
+      console.log('API Response:', data)
+      // Parse the body string into JSON
+      const bodyData = JSON.parse(data.body)
+      const assistantMessage = { id: Date.now(), role: 'assistant', content: bodyData.response }
       setMessages(prev => [...prev, assistantMessage])
-    } catch (error) {
-      console.error('Error:', error)
-      const errorMessage = { id: Date.now(), role: 'assistant', content: 'Sorry, I encountered an error while processing your request.' }
-      setMessages(prev => [...prev, errorMessage])
+    } catch (err) {
+      setError(err.message)
+      // Remove the user's message if we got an error
+      setMessages(prev => prev.slice(0, -1))
     } finally {
       setLoading(false)
     }
@@ -80,6 +89,19 @@ const TutorApp = () => {
                 <div className="p-4 rounded-full bg-gray-800 flex items-center shadow-lg">
                   <span className="animate-spin mr-3 text-blue-400 text-2xl">⟳</span>
                   <p className="text-blue-300 font-semibold">Generating response...</p>
+                </div>
+              </motion.div>
+            )}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+                className="flex justify-center mb-6"
+              >
+                <div className="p-4 rounded-full bg-gray-800 flex items-center shadow-lg">
+                  <p className="text-red-300 font-semibold">{error}</p>
                 </div>
               </motion.div>
             )}
