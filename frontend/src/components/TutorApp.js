@@ -27,31 +27,44 @@ const TutorApp = () => {
     setInput('')
 
     try {
-      const API_URL = 'https://aam7b42cp4.execute-api.ap-south-1.amazonaws.com';
+      const API_URL = 'https://aam7b42cp4.execute-api.ap-south-1.amazonaws.com/prod';
+      console.log('Sending request to:', `${API_URL}/ask`);
+      
       const response = await fetch(`${API_URL}/ask`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: input, context: messages.map(m => m.content).join('\n') }),
-      })
+        headers: { 
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ 
+          question: input, 
+          context: messages.map(m => m.content).join('\n') 
+        })
+      });
 
       if (!response.ok) {
-        const errorData = await response.json()
-        console.error('API Error:', errorData)
-        throw new Error(errorData.detail || 'Failed to get response')
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json()
-      console.log('API Response:', data)
-      // Parse the body string into JSON
-      const bodyData = JSON.parse(data.body)
-      const assistantMessage = { id: Date.now(), role: 'assistant', content: bodyData.response }
-      setMessages(prev => [...prev, assistantMessage])
+      const data = await response.json();
+      console.log('API Response:', data);
+
+      if (!data.body) {
+        throw new Error('Invalid response format from server');
+      }
+
+      const bodyData = JSON.parse(data.body);
+      const assistantMessage = { 
+        id: Date.now(), 
+        role: 'assistant', 
+        content: bodyData.response 
+      };
+      setMessages(prev => [...prev, assistantMessage]);
     } catch (err) {
-      setError(err.message)
-      // Remove the user's message if we got an error
-      setMessages(prev => prev.slice(0, -1))
+      console.error('Error:', err);
+      setError(`Failed to get response. Please try again.`);
+      setMessages(prev => prev.slice(0, -1));
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
